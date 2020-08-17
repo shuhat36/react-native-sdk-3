@@ -80,7 +80,7 @@ public class OnfidoSdkModule extends ReactContextBaseJavaModule {
                 currentPromise = null;
                 return;
             }
-
+    
             Activity currentActivity = getCurrentActivityInParentClass();
             if (currentActivity == null) {
                 currentPromise.reject("error", new Exception("Android activity does not exist"));
@@ -95,7 +95,6 @@ public class OnfidoSdkModule extends ReactContextBaseJavaModule {
             } else if (language.equals("ita")) {
                 locale = Locale.ITALIAN;
             }
-
             try {
                 /* Native SDK seems to have a bug that if an empty EnterpriseFeatures is passed to it,
                  the logo will still be hidden, even if explicitly set to false */
@@ -198,7 +197,7 @@ public class OnfidoSdkModule extends ReactContextBaseJavaModule {
                     captureDocument = null;
                 }
             }
-
+    
 
             final List<FlowStep> flowStepList = new ArrayList<>();
 
