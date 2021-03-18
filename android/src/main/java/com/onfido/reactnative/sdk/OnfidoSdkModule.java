@@ -59,7 +59,9 @@ public class OnfidoSdkModule extends ReactContextBaseJavaModule {
         return "OnfidoSdk";
     }
 
-    /** NOTE: This indirection is used to allow unit tests to mock this method */
+    /**
+     * NOTE: This indirection is used to allow unit tests to mock this method
+     */
     protected Activity getCurrentActivityInParentClass() {
         return super.getCurrentActivity();
     }
@@ -80,7 +82,7 @@ public class OnfidoSdkModule extends ReactContextBaseJavaModule {
                 currentPromise = null;
                 return;
             }
-    
+
             Activity currentActivity = getCurrentActivityInParentClass();
             if (currentActivity == null) {
                 currentPromise.reject("error", new Exception("Android activity does not exist"));
@@ -197,7 +199,7 @@ public class OnfidoSdkModule extends ReactContextBaseJavaModule {
                     captureDocument = null;
                 }
             }
-    
+
 
             final List<FlowStep> flowStepList = new ArrayList<>();
 
