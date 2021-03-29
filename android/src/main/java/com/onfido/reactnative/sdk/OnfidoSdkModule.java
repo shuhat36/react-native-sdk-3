@@ -17,7 +17,6 @@ import java.util.Locale;
 import com.facebook.react.bridge.Arguments;
 
 import com.onfido.android.sdk.capture.Onfido;
-import com.onfido.android.sdk.capture.EnterpriseFeatures;
 import com.onfido.android.sdk.capture.ui.options.FlowStep;
 import com.onfido.android.sdk.capture.OnfidoConfig;
 import com.onfido.android.sdk.capture.OnfidoFactory;
@@ -26,7 +25,6 @@ import com.onfido.android.sdk.capture.ui.camera.face.FaceCaptureVariant;
 import com.onfido.android.sdk.capture.DocumentType;
 import com.onfido.android.sdk.capture.utils.CountryCode;
 import com.onfido.android.sdk.capture.ui.options.CaptureScreenStep;
-import com.onfido.android.sdk.capture.errors.*;
 
 public class OnfidoSdkModule extends ReactContextBaseJavaModule {
 
@@ -99,49 +97,14 @@ public class OnfidoSdkModule extends ReactContextBaseJavaModule {
             }
 
                 try {
-                    /* Native SDK seems to have a bug that if an empty EnterpriseFeatures is passed to it,
-                 the logo will still be hidden, even if explicitly set to false */
-                EnterpriseFeatures.Builder enterpriseFeaturesBuilder = EnterpriseFeatures.builder();
-                boolean hasSetEnterpriseFeatures = false;
-
-                if (getBooleanFromConfig(config, "hideLogo")) {
-                    enterpriseFeaturesBuilder.withHideOnfidoLogo(true);
-                    hasSetEnterpriseFeatures = true;
-                } else if (getBooleanFromConfig(config, "logoCobrand")) {
-                    int cobrandLogoLight = currentActivity.getApplicationContext().getResources().getIdentifier(
-                            "cobrand_logo_light",
-                            "drawable",
-                            currentActivity.getApplicationContext().getPackageName()
-                    );
-                    int cobrandLogoDark = currentActivity.getApplicationContext().getResources().getIdentifier(
-                            "cobrand_logo_dark",
-                            "drawable",
-                            currentActivity.getApplicationContext().getPackageName()
-                    );
-                    enterpriseFeaturesBuilder.withCobrandingLogo(cobrandLogoLight, cobrandLogoDark);
-                    hasSetEnterpriseFeatures = true;
-                }
-
-                OnfidoConfig.Builder onfidoConfigBuilder = OnfidoConfig.builder(currentActivity)
+                    final OnfidoConfig onfidoConfig = OnfidoConfig.builder(currentActivity)
                             .withSDKToken(sdkToken)
-                            .withCustomFlow(flowStepsWithOptions);
-                            if (hasSetEnterpriseFeatures) {
-                    onfidoConfigBuilder.withEnterpriseFeatures(enterpriseFeaturesBuilder.withLocale(locale)
-                            .build());
-                }
-                    client.startActivityForResult(currentActivity, 1, onfidoConfigBuilder.build());
-            }
-            catch (final EnterpriseFeaturesInvalidLogoCobrandingException e) {
-                currentPromise.reject("error", new EnterpriseFeaturesInvalidLogoCobrandingException());
-                currentPromise = null;
-                return;
-            }
-            catch (final EnterpriseFeatureNotEnabledException e) {
-                currentPromise.reject("error", new EnterpriseFeatureNotEnabledException("logoCobrand"));
-                currentPromise = null;
-                return;
+                            .withCustomFlow(flowStepsWithOptions)
+                            .withLocale(locale)
+                            .build();
+                    client.startActivityForResult(currentActivity, 1, onfidoConfig);
                 } catch (final Exception e) {
-                    currentPromise.reject("error", new Exception(e.getMessage(), e));
+                    currentPromise.reject("error", new Exception("Failed to show Onfido page", e));
                     currentPromise = null;
                     return;
                 }
@@ -265,9 +228,5 @@ public class OnfidoSdkModule extends ReactContextBaseJavaModule {
             }
         }
         return countryCode;
-    }
-
-    private boolean getBooleanFromConfig(ReadableMap config, String key) {
-        return config.hasKey(key) && config.getBoolean(key);
     }
 }
