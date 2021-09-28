@@ -87,7 +87,7 @@ public func loadAppearanceFromFile(filePath: String?) throws -> Appearance {
     }
 }
 
-public func buildOnfidoConfig(config:NSDictionary, appearance: Appearance) throws -> Onfido.OnfidoConfig.Builder {
+public func buildOnfidoConfig(config:NSDictionary, appearance: Appearance) throws -> Onfido.OnfidoConfigBuilder {
   let sdkToken:String = config["sdkToken"] as! String
   let flowSteps:NSDictionary? = config["flowSteps"] as? NSDictionary
   let captureDocument:NSDictionary? = flowSteps?["captureDocument"] as? NSDictionary
@@ -97,12 +97,18 @@ public func buildOnfidoConfig(config:NSDictionary, appearance: Appearance) throw
     .withSDKToken(sdkToken)
     .withAppearance(appearance)
 
+  var enterpriseFeatures = EnterpriseFeatures.builder()
+
   if let localisationConfig = config["localisation"] as? NSDictionary, let file = localisationConfig["ios_strings_file_name"] as? String {
     onfidoConfig = onfidoConfig.withCustomLocalization(andTableName: file)
   }
 
   if flowSteps?["welcome"] as? Bool == true {
     onfidoConfig = onfidoConfig.withWelcomeStep()
+  }
+
+  if flowSteps?["userConsent"] as? Bool == true {
+    onfidoConfig = onfidoConfig.withUserConsentStep()
   }
 
   if let docType = captureDocument?["docType"] as? String, let countryCode = captureDocument?["countryCode"] as? String {
@@ -137,7 +143,22 @@ public func buildOnfidoConfig(config:NSDictionary, appearance: Appearance) throw
       throw NSError(domain: "Invalid or unsupported face variant", code: 0)
     }
   }
-     return onfidoConfig;
+
+  if let hideLogo = config["hideLogo"] as? Bool {
+    enterpriseFeatures.withHideOnfidoLogo(hideLogo)
+  }
+
+  if config["logoCobrand"] as? Bool == true {
+    if (UIImage(named: "cobrand-logo-light") != nil && UIImage(named: "cobrand-logo-dark") != nil) {
+      enterpriseFeatures.withCobrandingLogo(UIImage(named: "cobrand-logo-light")!, cobrandingLogoDarkMode: UIImage(named: "cobrand-logo-dark")!)
+    } else {
+        throw NSError(domain: "Cobrand logos were not found", code: 0)
+    }
+  }
+
+  onfidoConfig.withEnterpriseFeatures(enterpriseFeatures.build())
+
+  return onfidoConfig;
 }
 
 @objc(OnfidoSdk)
@@ -175,13 +196,20 @@ class OnfidoSdk: NSObject {
           guard let `self` = self else { return }
           switch response {
             case let .error(error):
-              reject("error", "Encountered an error: \(error)", error)
+              reject("\(error)", "Encountered an error running the flow", error)
               return;
             case let .success(results):
               resolve(createResponse(results, faceVariant: faceVariant))
               return;
-            case .cancel:
-              reject("cancel", "User canceled flow", nil)
+            case let .cancel(reason):
+              switch (reason) {
+                case .deniedConsent:
+                  reject("deniedConsent", "User denied consent.", nil)
+                case .userExit:
+                  reject("userExit", "User canceled flow.", nil)
+                default:
+                  reject("userExit", "User canceled flow via unknown method.", nil)
+              }
               return;
             default:
               reject("error", "Unknown error has occured", nil)
@@ -189,17 +217,17 @@ class OnfidoSdk: NSObject {
           }
         })
 
-      let onfidoRun = try onfidoFlow.run()
-      onfidoRun.modalPresentationStyle = .fullScreen
-      UIApplication.shared.windows.first?.rootViewController?.present(onfidoRun, animated: true)
-    } catch let error as NSError {
-      reject("error", error.domain, error)
-      return;
-    } catch let error {
-      reject("error", "Error running Onfido SDK", error)
-      return;
+            let onfidoRun = try onfidoFlow.run()
+            onfidoRun.modalPresentationStyle = .fullScreen
+            UIApplication.shared.windows.first?.rootViewController?.findTopMostController().present(onfidoRun, animated: true)
+        } catch let error as NSError {
+            reject("\(error)", error.domain, error)
+            return;
+        } catch let error {
+            reject("\(error)", "Error running Onfido SDK", error)
+            return;
+        }
     }
-  }
 }
 
 extension UIColor {
@@ -256,4 +284,14 @@ extension Appearance {
             primaryColor: UIColor.primaryColor,
             primaryTitleColor: UIColor.white,
             primaryBackgroundPressedColor: UIColor.primaryButtonColorPressed)
+}
+
+extension UIViewController {
+    public func findTopMostController() -> UIViewController {
+        var topController: UIViewController? = self
+        while topController!.presentedViewController != nil {
+            topController = topController!.presentedViewController!
+        }
+        return topController!
+    }
 }

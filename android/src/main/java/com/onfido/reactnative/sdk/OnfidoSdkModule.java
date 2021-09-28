@@ -57,9 +57,7 @@ public class OnfidoSdkModule extends ReactContextBaseJavaModule {
         return "OnfidoSdk";
     }
 
-    /**
-     * NOTE: This indirection is used to allow unit tests to mock this method
-     */
+    /** NOTE: This indirection is used to allow unit tests to mock this method */
     protected Activity getCurrentActivityInParentClass() {
         return super.getCurrentActivity();
     }
@@ -96,18 +94,61 @@ public class OnfidoSdkModule extends ReactContextBaseJavaModule {
                 locale = Locale.ITALIAN;
             }
 
-                try {
-                    final OnfidoConfig onfidoConfig = OnfidoConfig.builder(currentActivity)
-                            .withSDKToken(sdkToken)
-                            .withCustomFlow(flowStepsWithOptions)
-                            .withLocale(locale)
-                            .build();
-                    client.startActivityForResult(currentActivity, 1, onfidoConfig);
-                } catch (final Exception e) {
-                    currentPromise.reject("error", new Exception("Failed to show Onfido page", e));
-                    currentPromise = null;
-                    return;
+            try {
+                /* Native SDK seems to have a bug that if an empty EnterpriseFeatures is passed to it,
+                 the logo will still be hidden, even if explicitly set to false */
+                EnterpriseFeatures.Builder enterpriseFeaturesBuilder = EnterpriseFeatures.builder();
+                boolean hasSetEnterpriseFeatures = false;
+
+                if (getBooleanFromConfig(config, "hideLogo")) {
+                    enterpriseFeaturesBuilder.withHideOnfidoLogo(true);
+                    hasSetEnterpriseFeatures = true;
+                } else if (getBooleanFromConfig(config, "logoCobrand")) {
+                    int cobrandLogoLight = currentActivity.getApplicationContext().getResources().getIdentifier(
+                            "cobrand_logo_light",
+                            "drawable",
+                            currentActivity.getApplicationContext().getPackageName()
+                    );
+                    int cobrandLogoDark = currentActivity.getApplicationContext().getResources().getIdentifier(
+                            "cobrand_logo_dark",
+                            "drawable",
+                            currentActivity.getApplicationContext().getPackageName()
+                    );
+                    if (cobrandLogoLight == 0 || cobrandLogoDark == 0) {
+                        currentPromise.reject("error", new Exception("Cobrand logos were not found"));
+                        currentPromise = null;
+                        return;
+                    }
+                    enterpriseFeaturesBuilder.withCobrandingLogo(cobrandLogoLight, cobrandLogoDark);
+                    hasSetEnterpriseFeatures = true;
                 }
+
+                OnfidoConfig.Builder onfidoConfigBuilder = OnfidoConfig.builder(currentActivity)
+                        .withSDKToken(sdkToken)
+                        .withCustomFlow(flowStepsWithOptions)
+                        .withLocale(locale);
+
+                if (hasSetEnterpriseFeatures) {
+                    onfidoConfigBuilder.withEnterpriseFeatures(enterpriseFeaturesBuilder.build());
+                }
+
+                client.startActivityForResult(currentActivity, 1, onfidoConfigBuilder.build());
+            }
+            catch (final EnterpriseFeaturesInvalidLogoCobrandingException e) {
+                currentPromise.reject("error", new EnterpriseFeaturesInvalidLogoCobrandingException());
+                currentPromise = null;
+                return;
+            }
+            catch (final EnterpriseFeatureNotEnabledException e) {
+                currentPromise.reject("error", new EnterpriseFeatureNotEnabledException("logoCobrand"));
+                currentPromise = null;
+                return;
+            }
+            catch (final Exception e) {
+                currentPromise.reject("error", new Exception(e.getMessage(), e));
+                currentPromise = null;
+                return;
+            }
 
         } catch (final Exception e) {
             e.printStackTrace();
@@ -135,6 +176,13 @@ public class OnfidoSdkModule extends ReactContextBaseJavaModule {
                 welcomePageIsIncluded = false;
             }
 
+            final Boolean userConsentIsIncluded;
+            if (flowSteps.hasKey("userConsent")) {
+                userConsentIsIncluded = flowSteps.getBoolean("userConsent");
+            } else {
+                userConsentIsIncluded = false;
+            }
+
             ReadableMap captureDocument = null;
             Boolean captureDocumentBoolean = null;
 
@@ -156,11 +204,15 @@ public class OnfidoSdkModule extends ReactContextBaseJavaModule {
                 flowStepList.add(FlowStep.WELCOME);
             }
 
+            if (userConsentIsIncluded) {
+                flowStepList.add(FlowStep.USER_CONSENT);
+            }
+
             if (captureDocumentBoolean != null && captureDocumentBoolean) {
                 flowStepList.add(FlowStep.CAPTURE_DOCUMENT);
             } else if (captureDocument != null) {
                 final boolean docTypeExists = captureDocument.hasKey("docType");
-                final boolean countryCodeExists = captureDocument.hasKey("countryCode");
+                final boolean countryCodeExists = captureDocument.hasKey("alpha2CountryCode");
                 if (docTypeExists && countryCodeExists) {
                     String docTypeString = captureDocument.getString("docType");
 
@@ -172,8 +224,8 @@ public class OnfidoSdkModule extends ReactContextBaseJavaModule {
                         throw new Exception("Unexpected docType value.");
                     }
 
-                    String countryCodeString = captureDocument.getString("countryCode");
-                    CountryCode countryCodeEnum = findCountryCodeByAlpha3(countryCodeString);
+                    String countryCodeString = captureDocument.getString("alpha2CountryCode");
+                    CountryCode countryCodeEnum = findCountryCodeByAlpha2(countryCodeString);
 
                     if (countryCodeEnum == null) {
                         System.err.println("Unexpected countryCode value: [" + countryCodeString + "]");
@@ -219,14 +271,18 @@ public class OnfidoSdkModule extends ReactContextBaseJavaModule {
         }
     }
 
-    public static CountryCode findCountryCodeByAlpha3(String countryCodeString) {
+    public static CountryCode findCountryCodeByAlpha2(String countryCodeString) {
         CountryCode countryCode = null;
         // We'll use a loop to find the value, because streams are not supported in Java 7.
         for (CountryCode cc : CountryCode.values()) {
-            if (cc.getAlpha3().equals(countryCodeString)) {
+            if (cc.name().equals(countryCodeString)) {
                 countryCode = cc;
             }
         }
         return countryCode;
+    }
+
+    private boolean getBooleanFromConfig(ReadableMap config, String key) {
+        return config.hasKey(key) && config.getBoolean(key);
     }
 }
