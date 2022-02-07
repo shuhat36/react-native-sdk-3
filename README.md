@@ -44,6 +44,7 @@ This SDK provides a drop-in set of screens and tools for react native applicatio
 \* **Note**: the SDK is only responsible for capturing and uploading photos/videos. You still need to access the [Onfido API](https://documentation.onfido.com/) to create and manage checks.
 
 * Supports iOS 10+
+* Supports Xcode 13+
 * Supports Android API level 21+
 * Supports iPads and tablets
 
@@ -344,7 +345,16 @@ Example
 
 ### 5. Localization
 
-Onfido SDKs support a number of out-of-the-box translations. However, you can add your own translations.
+The SDK supports and maintains the following 6 languages:
+
+ - English (en) 🇬🇧
+ - Spanish (es) 🇪🇸
+ - French (fr) 🇫🇷
+ - German (de) 🇩🇪
+ - Italian (it) 🇮🇹
+ - Portuguese (pt) 🇵🇹
+ 
+However, you can add your own translations.
 
 #### Android
 
@@ -352,16 +362,18 @@ By default, custom localisation is enabled on Android. There is no configuration
 You could also provide custom translation for a locale that we don’t currently support, by having an additional XML strings file inside your resources folder for the desired locale. See [Localisation section of Android SDK repo](https://github.com/onfido/onfido-android-sdk#4-localisation) for the details.
 
 #### iOS
+You can also provide a custom translation for a locale that Onfido doesn't currently support.
+There is a simple configuration needed on the React Native SDK to enable custom localisation.
 
-If you want to enable custom localisation, add this statement to your configuration object.
-
+1. Add this statement to your configuration object.
 ```
 localisation: {
   ios_strings_file_name: '<Your .strings file name in iOS app bundle>',
 },
 ```
-
-In this case SDK will show strings from the provided file. For more detailed explanation please check out [Localisation section of iOS SDK repo.](https://github.com/onfido/onfido-ios-sdk#language-customisation)
+2. Navigate to the iOS folder ```cd ios```, and open your XCode workspace.
+3. Follow the instructions for [iOS Localisation](https://medium.com/lean-localization/ios-localization-tutorial-938231f9f881) to add a new custom language or override existing translations.
+4. You can find the keys that need to be translated in the [iOS SDK repo](https://github.com/onfido/onfido-ios-sdk/blob/master/localization/Localizable_EN.strings).
 
 ## Creating checks
 

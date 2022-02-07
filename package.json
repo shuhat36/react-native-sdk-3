@@ -1,14 +1,15 @@
 {
   "name": "@onfido/react-native-sdk",
   "title": "React Native Onfido Sdk",
-  "version": "2.2.0",
+  "version": "4.0.1",
   "description": "Onfido React Native SDK",
   "main": "index.js",
   "scripts": {
     "lint": "echo \"Skipping SDK linting...\"",
     "test": "echo \"RN SDK testing...\"; jest --coverage",
     "updateGradleMultiDex": "node scripts/android_enable_multi_dex.js",
-    "updateBuildGradle": "npm run updateGradleMultiDex",
+    "updateGradleMavenLink": "node scripts/android_add_maven_link.js",
+    "updateBuildGradle": "npm run updateGradleMultiDex && npm run updateGradleMavenLink",
     "updateColors": "node scripts/update_colors.js",
     "updateOnfido": "npm run updateBuildGradle && npm run updateColors",
     "iOSTest": "cd ios && xcodebuild test-without-building -workspace \"OnfidoSdk.xcworkspace\" -scheme \"OnfidoSdkTests\" -destination \"platform=iOS Simulator,name=iPhone 8,OS=13.3\" -only-testing:OnfidoSdkTests"
@@ -52,7 +53,11 @@
     "identity",
     "verification"
   ],
-  "author": "SDK Customer Support <react-native-sdk@onfido.com> (https://github.com/onfido)",
+  "author": {
+    "name": "SDK Customer Support",
+    "email": "react-native-sdk@onfido.com",
+    "url": "https://github.com/onfido"
+  },
   "license": "MIT",
   "licenseFilename": "LICENSE",
   "readmeFilename": "README.md",
@@ -65,6 +70,7 @@
     "@babel/cli": "^7.10.5",
     "@babel/core": "^7.10.5",
     "@babel/preset-env": "^7.10.4",
+    "@react-native-community/cli-platform-android": "^6.3.0",
     "babel-jest": "^26.0.0",
     "babel-preset-react-native": "^5.0.0",
     "husky": "^4.2.3",
@@ -73,5 +79,6 @@
     "react": "^16.11.0",
     "react-native": "^0.62.2",
     "react-native-webview": "^11.16.0"
-  }
+  },
+  "dependencies": {}
 }
