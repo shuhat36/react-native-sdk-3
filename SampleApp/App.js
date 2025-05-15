@@ -12,6 +12,7 @@ export default class App extends Component {
     message: '--',
     sdkToken: null,
     sdkFlowComplete: false,
+    workflowRunId: null,
   };
 
   componentDidMount() {
@@ -38,12 +39,12 @@ export default class App extends Component {
   startSDK = () => {
     Onfido.start({
       sdkToken: this.state.sdkToken,
+      workflowRunId: this.state.workflowRunId,
       localisation: {
         ios_strings_file_name: 'Localizable',
       },
       flowSteps: {
         welcome: true,
-        userConsent: true,
         captureDocument: {},
         captureFace: {
           type: OnfidoCaptureType.VIDEO,
@@ -69,8 +70,12 @@ export default class App extends Component {
   render() {
     return (
       <View style={styles.container}>
-        <Text style={styles.welcome}>{this.state.title}</Text>
-        <Text style={styles.instructions}>{this.state.subtitle}</Text>
+        <Text testID="firstName" style={styles.welcome}>
+          {this.state.title}
+        </Text>
+        <Text testID="lastName" style={styles.instructions}>
+          {this.state.subtitle}
+        </Text>
         <Button title="Launch" onPress={() => this.startSDK()} />
         {this.state.sdkFlowComplete ? (
           <Redirect to={`/finish/${this.state.status}/${this.state.message}`} />

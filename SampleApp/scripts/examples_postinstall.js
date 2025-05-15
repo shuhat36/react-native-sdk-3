@@ -97,9 +97,7 @@ const removeLibraryNpmIgnorePaths = (npmIgnorePath, libraryNodeModulesPath) => {
         );
       } catch (err) {
         console.log(
-          `Error deleting ${npmIgnoreLibraryNodeModulesEntryPath}: ${
-            err.message
-          }`,
+          `Error deleting ${npmIgnoreLibraryNodeModulesEntryPath}: ${err.message}`,
         );
       }
     });

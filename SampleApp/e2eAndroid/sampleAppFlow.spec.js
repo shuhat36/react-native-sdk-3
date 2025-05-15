@@ -5,17 +5,13 @@ import {waitForElementByType} from '../TestUtils/waitForElement';
 import {textProps} from '../TestUtils/testProperties';
 
 describe('Android Sample App flow', () => {
-  beforeEach(async function() {
+  beforeEach(async function () {
     await device.reloadReactNative();
   });
 
   it('should complete the document and face flow on Android successfully', async () => {
-    await element(by.type('android.widget.EditText'))
-      .atIndex(0)
-      .typeText(textProps.firstName);
-    await element(by.type('android.widget.EditText'))
-      .atIndex(1)
-      .typeText(textProps.lastName);
+    await element(by.id('firstName')).atIndex(0).typeText(textProps.firstName);
+    await element(by.id('lastName')).atIndex(1).typeText(textProps.lastName);
     await element(by.text('Start SDK')).tap();
     await element(by.text('LAUNCH')).tap();
     await element(by.text('Start')).tap();
